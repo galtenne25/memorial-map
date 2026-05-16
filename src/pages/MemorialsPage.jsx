@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import SearchBar from '../components/common/SearchBar'
 import SectionHeader from '../components/common/SectionHeader'
@@ -15,6 +15,12 @@ export default function MemorialsPage() {
   const [chips, toggleChip] = useChips(FILTER_CHIPS)
   const [query, setQuery] = useState('')
   const [filterOpen, setFilterOpen] = useState(false)
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    const timer = setTimeout(() => setLoading(false), 800)
+    return () => clearTimeout(timer)
+  }, [])
 
   const filteredSites = useMemo(() => {
     let sites = memorialSites
@@ -59,7 +65,19 @@ export default function MemorialsPage() {
         ))}
       </div>
 
-      {filteredSites.length === 0 ? (
+      {loading ? (
+        <div className="flex flex-col gap-3 px-4">
+          {[1, 2, 3].map(i => (
+            <div key={i} className="flex gap-3 bg-white p-3 rounded-2xl border border-slate-100 animate-pulse">
+              <div className="w-16 h-16 bg-slate-200 rounded-xl flex-shrink-0" />
+              <div className="flex-1 flex flex-col gap-2 justify-center">
+                <div className="w-3/4 h-4 bg-slate-200 rounded-full" />
+                <div className="w-1/2 h-3 bg-slate-200 rounded-full" />
+              </div>
+            </div>
+          ))}
+        </div>
+      ) : filteredSites.length === 0 ? (
         <div className="flex flex-col items-center justify-center gap-3 py-16 px-4">
           <span className="text-4xl">🕯️</span>
           <p className="text-base font-semibold text-slate-600">לא נמצאו תוצאות</p>

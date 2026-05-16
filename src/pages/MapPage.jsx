@@ -1,8 +1,9 @@
 import { useState, useCallback, useMemo } from 'react'
 import { MapContainer, TileLayer, Marker, useMapEvent } from 'react-leaflet'
+import MarkerClusterGroup from 'react-leaflet-cluster'
 import { useNavigate } from 'react-router-dom'
 import L from 'leaflet'
-import { Search, SlidersHorizontal, Plus, Navigation2, X } from 'lucide-react'
+import { Search, SlidersHorizontal, Plus, Navigation2, X, LocateFixed } from 'lucide-react'
 import { memorialSites } from '../data/mockData'
 import useChips from '../hooks/useChips'
 import FilterSheet from '../components/common/FilterSheet'
@@ -48,12 +49,24 @@ function MapTapHandler({ onTap }) {
   return null
 }
 
+// ── Centers map on user's GPS location ───────────────────────────────────────
+function LocateControl({ onLocationError }) {
+  const map = useMapEvent('locationfound', e => {
+    map.flyTo(e.latlng, 14)
+  })
+  useMapEvent('locationerror', () => {
+    onLocationError()
+  })
+  return null
+}
+
 // ── Main component ────────────────────────────────────────────────────────────
 export default function MapPage() {
   const navigate = useNavigate()
   const [selectedSite, setSelectedSite] = useState(null)
   const [query,        setQuery       ] = useState('')
   const [filterOpen,   setFilterOpen  ] = useState(false)
+  const [geoError,     setGeoError    ] = useState(false)
   const [chips, toggleChip] = useChips(INITIAL_CHIPS)
 
   const handleMarkerClick = useCallback(site => {
@@ -103,17 +116,20 @@ export default function MapPage() {
         />
 
         <MapTapHandler onTap={dismiss} />
+        <LocateControl onLocationError={() => setGeoError(true)} />
 
-        {siteIcons
-          .filter(({ site }) => filteredSites.some(fs => fs.id === site.id))
-          .map(({ site, icon }) => (
-            <Marker
-              key={site.id}
-              position={[site.coordinates.lat, site.coordinates.lng]}
-              icon={icon}
-              eventHandlers={{ click: () => handleMarkerClick(site) }}
-            />
-          ))}
+        <MarkerClusterGroup chunkedLoading>
+          {siteIcons
+            .filter(({ site }) => filteredSites.some(fs => fs.id === site.id))
+            .map(({ site, icon }) => (
+              <Marker
+                key={site.id}
+                position={[site.coordinates.lat, site.coordinates.lng]}
+                icon={icon}
+                eventHandlers={{ click: () => handleMarkerClick(site) }}
+              />
+            ))}
+        </MarkerClusterGroup>
       </MapContainer>
 
       {/* ── Search bar overlay ── */}
@@ -230,6 +246,20 @@ export default function MapPage() {
         )}
       </div>
 
+      {/* ── Locate Me FAB ── */}
+      <button
+        onClick={() => {
+          setGeoError(false)
+          const map = document.querySelector('.leaflet-container')._leaflet_map
+          map.locate()
+        }}
+        className="absolute right-4 bottom-24 z-[999] w-12 h-12 bg-white rounded-full shadow-lg
+                   flex items-center justify-center text-olive-700
+                   hover:bg-slate-50 active:scale-95 transition-all"
+      >
+        <LocateFixed size={20} strokeWidth={2.5} />
+      </button>
+
       {/* ── FAB — always visible above sticky bottom nav ── */}
       <div className="absolute left-0 right-0 bottom-4 z-[999] flex justify-center">
         <button
@@ -240,6 +270,15 @@ export default function MapPage() {
         >
           <Plus size={16} strokeWidth={2.5} />
           <span>הוסף נקודה</span>
+        </button>
+      </div>
+
+      {/* ── Geo error toast ── */}
+      <div className={`fixed top-20 left-4 right-4 max-w-md mx-auto z-[2000] flex items-center gap-3 bg-red-600 text-white px-4 py-3.5 rounded-2xl shadow-xl transition-all duration-300 ${geoError ? 'opacity-100 translate-y-0' : 'opacity-0 -translate-y-3 pointer-events-none'}`}>
+        <span className="text-xl">📍</span>
+        <p className="text-sm font-semibold">לא ניתן לאתר את המיקום שלך. ודא שהרשאות ה-GPS מופעלות.</p>
+        <button onClick={() => setGeoError(false)} className="mr-auto text-white/80 hover:text-white">
+          <X size={16} />
         </button>
       </div>
 

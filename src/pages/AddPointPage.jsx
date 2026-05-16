@@ -14,6 +14,7 @@ export default function AddPointPage() {
   const [showToast,      setShowToast     ] = useState(false)
   const [pickedLocation, setPickedLocation] = useState(null)
   const [mapModalOpen,   setMapModalOpen  ] = useState(false)
+  const [errors,         setErrors        ] = useState({})
 
   useEffect(() => {
     return () => { images.forEach(img => URL.revokeObjectURL(img.url)) }
@@ -35,6 +36,15 @@ export default function AddPointPage() {
 
   const handleSubmit = useCallback(async e => {
     e.preventDefault()
+    const newErrors = {}
+    if (!form.name.trim()) newErrors.name = 'יש להזין את שם האתר'
+    if (!pickedLocation) newErrors.location = 'יש לבחור מיקום על המפה'
+    if (form.description.trim().length < 10) newErrors.description = 'התיאור חייב להכיל לפחות 10 תווים'
+    if (Object.keys(newErrors).length > 0) {
+      setErrors(newErrors)
+      return
+    }
+    setErrors({})
     setIsSubmitting(true)
 
     await new Promise(r => setTimeout(r, 1200))
@@ -49,7 +59,7 @@ export default function AddPointPage() {
       setShowToast(false)
       navigate('/map')
     }, 2000)
-  }, [navigate])
+  }, [navigate, form, pickedLocation])
 
   return (
     <div dir="rtl" className="flex flex-col min-h-full">
@@ -88,6 +98,7 @@ export default function AddPointPage() {
                        focus:outline-none focus:ring-2 focus:ring-olive-300 focus:border-olive-500
                        transition-all"
           />
+          {errors.name && <span className="text-xs text-red-500 mt-1">{errors.name}</span>}
         </Field>
 
         {/* 2 · Map location placeholder */}
@@ -112,6 +123,7 @@ export default function AddPointPage() {
               </span>
             </div>
           </div>
+          {errors.location && <span className="text-xs text-red-500 mt-1">{errors.location}</span>}
         </Field>
 
         {/* 3 · Image upload */}
@@ -161,6 +173,7 @@ export default function AddPointPage() {
                        focus:outline-none focus:ring-2 focus:ring-olive-300 focus:border-olive-500
                        transition-all"
           />
+          {errors.description && <span className="text-xs text-red-500 mt-1">{errors.description}</span>}
         </Field>
 
         {/* Submit */}
